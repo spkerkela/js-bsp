@@ -7,7 +7,6 @@ var canvasHeight = canvas.height;
 var nextId = (function() {
   var n = 0;
   return function() {
-    console.log(n);
     return n++;
   };
 })();
@@ -15,6 +14,10 @@ var nextId = (function() {
 function randomIntFromInterval(min, max) {
   // min and max included
   return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+function distance(point1, point2) {
+  return Math.hypot(point1.x - point2.x, point1.y - point2.y);
 }
 
 function Rect(width, height, x, y) {
@@ -26,8 +29,8 @@ function Rect(width, height, x, y) {
 
 Rect.prototype.center = function() {
   return {
-    x: x + this.width / 2,
-    y: y + this.height / 2
+    x: this.x + this.width / 2,
+    y: this.y + this.height / 2
   };
 };
 
@@ -41,6 +44,13 @@ function Tree(width, height, x, y, color) {
   this.children = [];
   this.room = null;
 }
+
+Tree.prototype.center = function() {
+  return {
+    x: this.x + this.width / 2,
+    y: this.y + this.height / 2
+  };
+};
 
 Tree.prototype.addRoom = function() {
   var roomWidth = randomIntFromInterval(this.width / 2, this.width);
@@ -101,18 +111,18 @@ Tree.prototype.isLeaf = function() {
 var root = new Tree(canvasWidth, canvasHeight, 0, 0);
 root.split();
 
-function iterateTree(func, tree) {
+function iterateTreeLeafs(func, tree) {
   if (tree.isLeaf()) {
     func(tree);
   } else {
     tree.children.forEach(function(child) {
-      iterateTree(func, child);
+      iterateTreeLeafs(func, child);
     });
   }
 }
 
 for (var i = 0; i < 6; i++) {
-  iterateTree(function(node) {
+  iterateTreeLeafs(function(node) {
     if (!node.isLeaf()) {
       // Don't split other than leaves of tree
       return;
@@ -125,10 +135,26 @@ for (var i = 0; i < 6; i++) {
   }, root);
 }
 
-iterateTree(function(node) {
+function getRoom(node, nearest) {
+  if (node.room != null) {
+    return node.room;
+  }
+  if (node.isLeaf()) {
+    return null;
+  }
+  if (
+    distance(nearest, node.children[0].center()) <
+    distance(nearest, node.children[1].center())
+  ) {
+    return getRoom(node.children[0], nearest);
+  } else {
+    return getRoom(node.children[1], nearest);
+  }
+}
+
+iterateTreeLeafs(function(node) {
   context.fillStyle = node.color;
   context.fillRect(node.x, node.y, node.width, node.height);
-  console.log(node.width, node.height, node.x, node.y);
   node.addRoom();
   context.fillStyle = "black";
 
@@ -138,3 +164,18 @@ iterateTree(function(node) {
   context.font = "14pt Calibri";
   context.fillText(node.id, node.x + node.width / 2, node.y + node.height / 2);
 }, root);
+
+function connectRooms(node) {
+  if (!node.isLeaf()) {
+    node.children.forEach(connectRooms);
+    var point1 = getRoom(node.children[0], node.children[1].center()).center();
+    var point2 = getRoom(node.children[1], node.children[0].center()).center();
+    context.strokeStyle = "#333";
+    context.lineWidth = 3;
+    context.moveTo(point1.x, point1.y);
+    context.lineTo(point2.x, point2.y);
+    context.stroke();
+  }
+}
+
+connectRooms(root);
