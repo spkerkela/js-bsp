@@ -136,9 +136,6 @@ iterateTree(function(node) {
   context.fillRect(node.x, node.y, node.width, node.height);
   console.log(node.width, node.height, node.x, node.y);
   node.addRoom();
-}, root);
-
-iterateTree(function(node) {
   context.fillStyle = "black";
 
   context.fillRect(node.room.x, node.room.y, node.room.width, node.room.height);
