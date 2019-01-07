@@ -43,14 +43,8 @@ function Tree(width, height, x, y, color) {
 }
 
 Tree.prototype.addRoom = function() {
-  var roomWidth = randomIntFromInterval(
-    Math.floor(this.width / 3) + 4,
-    this.width - 4
-  );
-  var roomHeight = randomIntFromInterval(
-    Math.floor(this.width / 3) + 4,
-    this.height - 4
-  );
+  var roomWidth = randomIntFromInterval(this.width / 2, this.width);
+  var roomHeight = randomIntFromInterval(this.height / 2, this.height);
   var roomX = randomIntFromInterval(1, this.width - roomWidth);
   var roomY = randomIntFromInterval(1, this.height - roomHeight);
   this.room = new Rect(roomWidth, roomHeight, this.x + roomX, this.y + roomY);
