@@ -20,14 +20,25 @@ function distance(point1, point2) {
   return Math.hypot(point1.x - point2.x, point1.y - point2.y);
 }
 
-function Rect(width, height, x, y) {
+function Door(from, to) {
+  this.from = from;
+  this.to = to;
+  this.locked = false;
+}
+
+function Room(width, height, x, y) {
   this.width = width;
   this.height = height;
   this.x = x;
   this.y = y;
+  this.doors = [];
 }
 
-Rect.prototype.center = function() {
+Room.prototype.addDoor = function(door) {
+  this.doors.push(door);
+};
+
+Room.prototype.center = function() {
   return {
     x: this.x + this.width / 2,
     y: this.y + this.height / 2
@@ -57,7 +68,7 @@ Tree.prototype.addRoom = function() {
   var roomHeight = randomIntFromInterval(this.height / 2, this.height);
   var roomX = randomIntFromInterval(1, this.width - roomWidth);
   var roomY = randomIntFromInterval(1, this.height - roomHeight);
-  this.room = new Rect(roomWidth, roomHeight, this.x + roomX, this.y + roomY);
+  this.room = new Room(roomWidth, roomHeight, this.x + roomX, this.y + roomY);
 };
 
 Tree.prototype.area = function() {
@@ -152,10 +163,12 @@ function getRoom(node, nearest) {
   }
 }
 
+var roomCount = 0;
 iterateTreeLeafs(function(node) {
   context.fillStyle = node.color;
   context.fillRect(node.x, node.y, node.width, node.height);
   node.addRoom();
+  roomCount++;
   context.fillStyle = "black";
 
   context.fillRect(node.room.x, node.room.y, node.room.width, node.room.height);
@@ -165,16 +178,35 @@ iterateTreeLeafs(function(node) {
   context.fillText(node.id, node.x + node.width / 2, node.y + node.height / 2);
 }, root);
 
+var levels = 5;
+var colors = ["#222", "#444", "#666", "#888", "#aaa"];
+
+var interval = Math.ceil(roomCount / levels);
+
+var currentLevel = 0;
+var iterations = 0;
 function connectRooms(node) {
   if (!node.isLeaf()) {
     node.children.forEach(connectRooms);
-    var point1 = getRoom(node.children[0], node.children[1].center()).center();
-    var point2 = getRoom(node.children[1], node.children[0].center()).center();
-    context.strokeStyle = "#333";
+    var room1 = getRoom(node.children[0], node.children[1].center());
+    var room2 = getRoom(node.children[1], node.children[0].center());
+    room1.addDoor(new Door(room1, room2));
+    room2.addDoor(new Door(room2, room1));
+    context.beginPath();
+    context.strokeStyle = colors[currentLevel];
     context.lineWidth = 3;
-    context.moveTo(point1.x, point1.y);
-    context.lineTo(point2.x, point2.y);
+    center1 = room1.center();
+    center2 = room2.center();
+    context.moveTo(center1.x, center1.y);
+    context.lineTo(center2.x, center2.y);
     context.stroke();
+    iterations++;
+    if (iterations % interval == 0) {
+      currentLevel++;
+      if (currentLevel >= levels) {
+        currentLevel = levels;
+      }
+    }
   }
 }
 
