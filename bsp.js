@@ -12,6 +12,25 @@ var nextId = (function() {
   };
 })();
 
+function randomIntFromInterval(min, max) {
+  // min and max included
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+function Rect(width, height, x, y) {
+  this.width = width;
+  this.height = height;
+  this.x = x;
+  this.y = y;
+}
+
+Rect.prototype.center = function() {
+  return {
+    x: x + this.width / 2,
+    y: y + this.height / 2
+  };
+};
+
 function Tree(width, height, x, y, color) {
   this.id = nextId();
   this.width = width;
@@ -20,7 +39,22 @@ function Tree(width, height, x, y, color) {
   this.y = y;
   this.color = color;
   this.children = [];
+  this.room = null;
 }
+
+Tree.prototype.addRoom = function() {
+  var roomWidth = randomIntFromInterval(
+    Math.floor(this.width / 3) + 4,
+    this.width - 4
+  );
+  var roomHeight = randomIntFromInterval(
+    Math.floor(this.width / 3) + 4,
+    this.height - 4
+  );
+  var roomX = randomIntFromInterval(1, this.width - roomWidth);
+  var roomY = randomIntFromInterval(1, this.height - roomHeight);
+  this.room = new Rect(roomWidth, roomHeight, this.x + roomX, this.y + roomY);
+};
 
 Tree.prototype.area = function() {
   return this.width * this.height;
@@ -28,7 +62,7 @@ Tree.prototype.area = function() {
 
 Tree.prototype.split = function() {
   var horizontalSplit = Math.random() < 0.5;
-  var magicRatio = 1.45;
+  var magicRatio = 1.25;
   if (this.width > this.height && this.width / this.height >= magicRatio) {
     horizontalSplit = false;
   } else if (
@@ -83,7 +117,7 @@ function iterateTree(func, tree) {
   }
 }
 
-for (var i = 0; i < 4; i++) {
+for (var i = 0; i < 6; i++) {
   iterateTree(function(node) {
     if (!node.isLeaf()) {
       // Don't split other than leaves of tree
@@ -101,6 +135,14 @@ iterateTree(function(node) {
   context.fillStyle = node.color;
   context.fillRect(node.x, node.y, node.width, node.height);
   console.log(node.width, node.height, node.x, node.y);
+  node.addRoom();
+}, root);
+
+iterateTree(function(node) {
+  context.fillStyle = "black";
+
+  context.fillRect(node.room.x, node.room.y, node.room.width, node.room.height);
+
   context.fillStyle = "white";
   context.font = "14pt Calibri";
   context.fillText(node.id, node.x + node.width / 2, node.y + node.height / 2);
