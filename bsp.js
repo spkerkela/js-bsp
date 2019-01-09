@@ -32,6 +32,7 @@ function Room(width, height, x, y) {
   this.x = x;
   this.y = y;
   this.doors = [];
+  this.hasKey = false;
   this.exit = false;
   this.entrance = false;
 }
@@ -144,7 +145,6 @@ Tree.prototype.isLeaf = function() {
 };
 
 var root = new Tree(canvasWidth, canvasHeight, 0, 0);
-root.split();
 
 Tree.prototype.iterateLeafs = function iterate(func) {
   if (this.isLeaf()) {
@@ -156,7 +156,7 @@ Tree.prototype.iterateLeafs = function iterate(func) {
   }
 };
 
-for (var i = 0; i < 6; i++) {
+for (var i = 0; i < 8; i++) {
   root.iterateLeafs(function(node) {
     if (!node.isLeaf()) {
       // Don't split other than leaves of tree
@@ -234,6 +234,8 @@ connectRooms(root);
 
 var entrancePlaced = false;
 var lastLeafId = -1;
+var keysPlaced = 0;
+var locksPlaced = 0;
 
 root.iterateLeafs(function(node) {
   if (node.room.doors.length === 1) {
@@ -241,15 +243,36 @@ root.iterateLeafs(function(node) {
     if (!entrancePlaced) {
       entrancePlaced = true;
       node.room.entrance = true;
+    } else {
+      if (Math.random() < 0.5) {
+        if (locksPlaced === keysPlaced) {
+          node.room.hasKey = true;
+          keysPlaced++;
+        } else if (keysPlaced > locksPlaced) {
+          node.room.doors[0].locked = true;
+          locksPlaced++;
+        }
+      }
     }
   }
 });
 
-root.getNode(lastLeafId).room.exit = true;
+var lastNode = root.getNode(lastLeafId);
+lastNode.room.exit = true;
+if (locksPlaced < keysPlaced) {
+  lastNode.room.doors[0].locked = true;
+}
 root.iterateLeafs(function(node) {
   var nodeText = node.id;
   if (node.room.doors.length === 1) {
     context.fillStyle = "yellow";
+
+    if (node.room.hasKey) {
+      nodeText = "Has Key";
+    }
+    if (node.room.doors[0].locked) {
+      context.fillStyle = "red";
+    }
 
     context.fillRect(
       node.room.x + 2,
