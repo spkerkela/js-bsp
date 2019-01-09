@@ -32,6 +32,8 @@ function Room(width, height, x, y) {
   this.x = x;
   this.y = y;
   this.doors = [];
+  this.exit = false;
+  this.entrance = false;
 }
 
 Room.prototype.addDoor = function(door) {
@@ -73,6 +75,28 @@ Tree.prototype.addRoom = function() {
 
 Tree.prototype.area = function() {
   return this.width * this.height;
+};
+
+Tree.prototype.getNode = function(id) {
+  if (this.id === id) {
+    return this;
+  } else {
+    for (let i = 0; i < this.children.length; i++) {
+      var node = this.children[i].getNode(id);
+      if (node != null) {
+        return node;
+      }
+    }
+  }
+
+  return null;
+};
+
+Tree.prototype.forEach = function(func) {
+  this.children.forEach(function(child) {
+    child.forEach(func);
+  });
+  func(this);
 };
 
 Tree.prototype.split = function() {
@@ -122,18 +146,18 @@ Tree.prototype.isLeaf = function() {
 var root = new Tree(canvasWidth, canvasHeight, 0, 0);
 root.split();
 
-function iterateTreeLeafs(func, tree) {
-  if (tree.isLeaf()) {
-    func(tree);
+Tree.prototype.iterateLeafs = function iterate(func) {
+  if (this.isLeaf()) {
+    func(this);
   } else {
-    tree.children.forEach(function(child) {
-      iterateTreeLeafs(func, child);
+    this.children.forEach(function(child) {
+      child.iterateLeafs(func);
     });
   }
-}
+};
 
 for (var i = 0; i < 6; i++) {
-  iterateTreeLeafs(function(node) {
+  root.iterateLeafs(function(node) {
     if (!node.isLeaf()) {
       // Don't split other than leaves of tree
       return;
@@ -143,7 +167,7 @@ for (var i = 0; i < 6; i++) {
       return;
     }
     node.split();
-  }, root);
+  });
 }
 
 function getRoom(node, nearest) {
@@ -164,7 +188,7 @@ function getRoom(node, nearest) {
 }
 
 var roomCount = 0;
-iterateTreeLeafs(function(node) {
+root.iterateLeafs(function(node) {
   context.fillStyle = node.color;
   context.fillRect(node.x, node.y, node.width, node.height);
   node.addRoom();
@@ -172,7 +196,7 @@ iterateTreeLeafs(function(node) {
   context.fillStyle = "black";
 
   context.fillRect(node.room.x, node.room.y, node.room.width, node.room.height);
-}, root);
+});
 
 var levels = 5;
 var colors = ["#222", "#444", "#666", "#888", "#aaa"];
@@ -208,7 +232,22 @@ function connectRooms(node) {
 
 connectRooms(root);
 
-iterateTreeLeafs(function(node) {
+var entrancePlaced = false;
+var lastLeafId = -1;
+
+root.iterateLeafs(function(node) {
+  if (node.room.doors.length === 1) {
+    lastLeafId = node.id;
+    if (!entrancePlaced) {
+      entrancePlaced = true;
+      node.room.entrance = true;
+    }
+  }
+});
+
+root.getNode(lastLeafId).room.exit = true;
+root.iterateLeafs(function(node) {
+  var nodeText = node.id;
   if (node.room.doors.length === 1) {
     context.fillStyle = "yellow";
 
@@ -219,9 +258,15 @@ iterateTreeLeafs(function(node) {
       node.room.height - 4
     );
     context.fillStyle = "black";
+
+    if (node.room.entrance) {
+      nodeText = "Entrance";
+    } else if (node.room.exit) {
+      nodeText = "Exit";
+    }
   } else {
     context.fillStyle = "white";
   }
   context.font = "14pt Calibri";
-  context.fillText(node.id, node.x + node.width / 2, node.y + node.height / 2);
-}, root);
+  context.fillText(nodeText, node.x + node.width / 2, node.y + node.height / 2);
+});
