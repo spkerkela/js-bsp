@@ -172,10 +172,6 @@ iterateTreeLeafs(function(node) {
   context.fillStyle = "black";
 
   context.fillRect(node.room.x, node.room.y, node.room.width, node.room.height);
-
-  context.fillStyle = "white";
-  context.font = "14pt Calibri";
-  context.fillText(node.id, node.x + node.width / 2, node.y + node.height / 2);
 }, root);
 
 var levels = 5;
@@ -211,3 +207,21 @@ function connectRooms(node) {
 }
 
 connectRooms(root);
+
+iterateTreeLeafs(function(node) {
+  if (node.room.doors.length === 1) {
+    context.fillStyle = "yellow";
+
+    context.fillRect(
+      node.room.x + 2,
+      node.room.y + 2,
+      node.room.width - 4,
+      node.room.height - 4
+    );
+    context.fillStyle = "black";
+  } else {
+    context.fillStyle = "white";
+  }
+  context.font = "14pt Calibri";
+  context.fillText(node.id, node.x + node.width / 2, node.y + node.height / 2);
+}, root);
