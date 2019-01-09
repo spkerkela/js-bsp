@@ -156,7 +156,9 @@ Tree.prototype.iterateLeafs = function iterate(func) {
   }
 };
 
-for (var i = 0; i < 8; i++) {
+var bspIterations = 8;
+var halfRoundedDown = Math.floor(bspIterations / 2);
+for (var i = 0; i < bspIterations; i++) {
   root.iterateLeafs(function(node) {
     if (!node.isLeaf()) {
       // Don't split other than leaves of tree
@@ -205,13 +207,18 @@ var interval = Math.ceil(roomCount / levels);
 
 var currentLevel = 0;
 var iterations = 0;
+var worldLocks = 0;
+var worldKeys = 0;
 function connectRooms(node) {
   if (!node.isLeaf()) {
+    iterations++;
     node.children.forEach(connectRooms);
     var room1 = getRoom(node.children[0], node.children[1].center());
     var room2 = getRoom(node.children[1], node.children[0].center());
-    room1.addDoor(new Door(room1, room2));
-    room2.addDoor(new Door(room2, room1));
+    var door1 = new Door(room1, room2);
+    var door2 = new Door(room2, room1);
+    room1.addDoor(door1);
+    room2.addDoor(door2);
     context.beginPath();
     context.strokeStyle = colors[currentLevel];
     context.lineWidth = 3;
@@ -220,7 +227,6 @@ function connectRooms(node) {
     context.moveTo(center1.x, center1.y);
     context.lineTo(center2.x, center2.y);
     context.stroke();
-    iterations++;
     if (iterations % interval == 0) {
       currentLevel++;
       if (currentLevel >= levels) {
@@ -243,24 +249,30 @@ root.iterateLeafs(function(node) {
     if (!entrancePlaced) {
       entrancePlaced = true;
       node.room.entrance = true;
-    } else {
-      if (Math.random() < 0.5) {
-        if (locksPlaced === keysPlaced) {
-          node.room.hasKey = true;
-          keysPlaced++;
-        } else if (keysPlaced > locksPlaced) {
-          node.room.doors[0].locked = true;
-          locksPlaced++;
-        }
+      return;
+    }
+    if (Math.random() < 0.5) {
+      if (locksPlaced === keysPlaced) {
+        node.room.hasKey = true;
+        keysPlaced++;
+      } else if (keysPlaced > locksPlaced) {
+        node.room.doors[0].locked = true;
+        locksPlaced++;
       }
     }
   }
 });
 
 var lastNode = root.getNode(lastLeafId);
+
 lastNode.room.exit = true;
 if (locksPlaced < keysPlaced) {
-  lastNode.room.doors[0].locked = true;
+  if (lastNode.room.hasKey) {
+    lastNode.room.hasKey = false;
+    keysPlaced--;
+  } else {
+    lastNode.room.doors[0].locked = true;
+  }
 }
 root.iterateLeafs(function(node) {
   var nodeText = node.id;
